@@ -11,11 +11,15 @@
     </div>
 
     <div class="box">
-        <% for(let i=0; i<newItem.length; i++){ %>
-        <div class="item">
-            <input type="checkbox">
-            <p><%= newItem[i] %></p>
+        
+        <% for(let i=0; i<newItems.length; i++){ %>
+            <form action="/delete" method="POST">
+            <div class="item">
+            <input type="checkbox" name="checkbox" value="<%=newItems[i]._id%>" onChange="this.form.submit()">
+            <p><%= newItems[i].name %></p>
         </div>
+            </form>
+        
         <%  }  %>
 
         <form action="/" method="POST" class="item">
