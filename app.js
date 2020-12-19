@@ -31,7 +31,13 @@ const item3 = new Item({
 
 const defaultItems = [item1, item2, item3];
 
+const listSchema = {
+    name: String,
+    items: [itemsSchema]
+};
 
+
+const List = mongoose.model('List', listSchema);
 
 //mongoose finshed
 
@@ -64,56 +70,87 @@ app.get("/", (req, res) => {
 app.post("/", (req, res) => {
 
     let newItem = req.body.toDoList;
+    let listName = req.body.list;
 
     const item = new Item({
         name: newItem
     });
 
-    item.save();
+    if (listName === "today") {
+        item.save();
 
-    res.redirect('/');
+        res.redirect('/');
+    } else {
+        List.findOne({ name: listName }, (err, foundList) => {
+            console.log(err);
+            foundList.items.push(item);
+            foundList.save();
+            res.redirect("/" + listName);
+        })
+    }
 
 
-    // let workItem = req.body.toDoList;
-
-    // if (req.body.list === "Work") {
-    //     workItems.push(workItem);
-    //     res.redirect("/work");
-    // }
-    // else {
-    //     items.push(item);
-    //     res.redirect("/");
-    // }
 })
 
 app.post('/delete', (req, res) => {
     const itemId = req.body.checkbox;
+    const listName = req.body.listName;
     // console.log(itemId);
-    Item.findByIdAndRemove(itemId, (err) => {
-        if (!err) {
-            console.log("succesfully deleted the Item");
-        } else {
-            console.log(err, "We are unable to delete the Item");
-        }
-    })
+    console.log(listName);
+    if (listName === "Today") {
+        Item.findByIdAndRemove(itemId, (err) => {
+            if (!err) {
+                console.log("succesfully deleted the Item");
+            } else {
+                console.log(err, "We are unable to delete the Item");
+            }
+        })
+        res.redirect('/');
+    } else {
+        List.findOneAndUpdate({ name: listName }, {
+            $pull: {
+                items: {
+                    _id: itemId
+                }
+            }
+        }, (err, foundList) => {
+            if (!err) {
+                res.redirect("/" + listName);
+                console.log(foundList);
+            } else {
+                console.log(err);
+            }
+        })
+    }
 
-    res.redirect('/');
 });
 
 app.get("/:parameter", (req, res) => {
-    console.log(req.params.parameter);
+    const customListName = req.params.parameter;
+
+    List.findOne({ name: customListName }, (err, foundList) => {
+        if (!err) {
+            if (!foundList) {
+
+                const list = new List({
+                    name: customListName,
+                    items: defaultItems
+                });
+                list.save();
+                //create a new list
+
+                res.redirect("/" + customListName);
+            } else {
+
+                res.render("list", {
+                    listTitle: foundList.name,
+                    newItems: foundList.items
+                })
+                //show an existing list
+            }
+        }
+    })
 })
-
-
-// app.get("/work", (req, res) => {
-
-
-//     res.render("list", {
-//         listTitle: "Work List",
-//         newItem: workItems
-//     });
-// })
-
 
 app.listen(3000, () => {
     console.log("server is running at port 3000");
